@@ -173,11 +173,10 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     writer = tf.summary.FileWriter('./logs')
     writer.add_graph(sess.graph)
 
+    counter = 1
     for epoch in range(epochs):
 
         losses = []
-        counter = 1
-
         for images, labels in get_batches_fn(batch_size):
             feed = {input_image: images,
                     correct_label: labels,
