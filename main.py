@@ -1,15 +1,22 @@
 import os.path
+import argparse
 import tensorflow as tf
 import helper
 import warnings
 from distutils.version import LooseVersion
 import project_tests as tests
 
-
-Epochs = 5
+Epochs = 25
 Batch_Size = 8
 Learning_Rate = 0.0001
 Dropout = 0.7
+num_classes = 2
+image_shape = (160, 576)
+data_dir = './data'
+runs_dir = './runs'
+models_dir = './models'
+# Launch tensorboard from commandline : tensorboard --logdir=path-to-log-dir
+log_dir = './logs'
 
 # Check TensorFlow Version
 assert LooseVersion(tf.__version__) >= LooseVersion('1.0'), 'Please use TensorFlow version 1.0 or newer.  You are using {}'.format(tf.__version__)
@@ -123,7 +130,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
 
     return deconv_output
 
-tests.test_layers(layers)
+#tests.test_layers(layers)
 
 
 def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
@@ -151,7 +158,7 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
 
     return logits, train_op, cross_entropy_loss
 
-tests.test_optimize(optimize)
+#tests.test_optimize(optimize)
 
 def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
              correct_label, keep_prob, learning_rate):
@@ -167,16 +174,16 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param correct_label: TF Placeholder for label images
     :param keep_prob: TF Placeholder for dropout keep probability
     :param learning_rate: TF Placeholder for learning rate
-    :param writer: FileWriter used to log information
     """
+
     summary = tf.summary.merge_all()
-    writer = tf.summary.FileWriter('./logs')
+    writer = tf.summary.FileWriter(log_dir)
     writer.add_graph(sess.graph)
 
     counter = 1
     for epoch in range(epochs):
-
         losses = []
+
         for images, labels in get_batches_fn(batch_size):
             feed = {input_image: images,
                     correct_label: labels,
@@ -194,6 +201,9 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 
             counter += 1
 
+            if counter == 5:
+                break
+
         total_loss = sum(losses) / len(losses)
 
         print()
@@ -204,13 +214,6 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 
 
 def run():
-    num_classes = 2
-    image_shape = (160, 576)
-    data_dir = './data'
-    runs_dir = './runs'
-
-    # Launch tensorboard from commandline : tensorboard --logdir=path-to-log-dir
-    log_dir  = './logs'
     tests.test_for_kitti_dataset(data_dir)
 
     # Download pretrained vgg model
@@ -237,20 +240,18 @@ def run():
         # OPTIONAL: Augment Images for better results
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
-        # TODO: Build NN using load_vgg, layers, and optimize function
+        # Build NN using load_vgg, layers, and optimize function
         input_image, keep_prob, l3, l4, l7 = load_vgg(sess, vgg_path)
 
         output = layers(l3, l4, l7, num_classes)
 
-        # Returns the output logits, training operation and cost operation to be used
-        # - logits: each row represents a pixel, each column a class
-        # - train_op: function used to get the right parameters to the model to correctly label the pixels
-        # - cross_entropy_loss: function outputting the cost which we are minimizing, lower cost should yield higher accuracy
         logits, train_op, cross_entropy_loss = optimize(output, correct_label, learning_rate, num_classes)
 
         # Initialize all variables
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
+
+        saver = tf.train.Saver()
 
         # Train the neural network
         train_nn(sess,
@@ -264,12 +265,22 @@ def run():
                  keep_prob,
                  learning_rate)
 
+        save_path = saver.save(sess, os.path.join(models_dir, "model.ckpt"))
+        print("Model saved in file: %s" % save_path)
+
         # Run the model with the test images and save each painted output image (roads painted green)
-        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
+        #helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
 
         # OPTIONAL: Apply the trained model to a video
 
     print ("Finished")
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Semantic Segmentation')
+    parser.add_argument('model', type=str, help='Path to the model.', default='', nargs='?')
+
+    args = parser.parse_args()
+
+    print("Model: %s" % args.model)
+
     run()

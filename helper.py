@@ -119,8 +119,9 @@ def gen_test_output(sess, logits, keep_prob, image_pl, data_folder, image_shape)
         segmentation = (im_softmax > 0.5).reshape(image_shape[0], image_shape[1], 1)
         mask = np.dot(segmentation, np.array([[0, 255, 0, 127]]))
         mask = scipy.misc.toimage(mask, mode="RGBA")
-        street_im = scipy.misc.toimage(image)
-        street_im.paste(mask, box=None, mask=mask)
+        #street_im = scipy.misc.toimage(image)
+        #street_im.paste(mask, box=None, mask=mask)
+        street_im = scipy.misc.toimage(mask)
 
         yield os.path.basename(image_file), np.array(street_im)
 
