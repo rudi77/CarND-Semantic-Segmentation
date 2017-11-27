@@ -7,10 +7,10 @@ from distutils.version import LooseVersion
 import project_tests as tests
 
 Epochs = 25
-Batch_Size = 8
+Batch_Size = 2
 Learning_Rate = 0.0001
 Dropout = 0.7
-num_classes = 2
+num_classes = 3
 image_shape = (160, 576)
 data_dir = './data'
 runs_dir = './runs'
@@ -201,9 +201,6 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 
             counter += 1
 
-            if counter == 5:
-                break
-
         total_loss = sum(losses) / len(losses)
 
         print()
@@ -269,7 +266,7 @@ def run():
         print("Model saved in file: %s" % save_path)
 
         # Run the model with the test images and save each painted output image (roads painted green)
-        #helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
 
         # OPTIONAL: Apply the trained model to a video
 
