@@ -12,10 +12,6 @@ from urllib.request import urlretrieve
 from tqdm import tqdm
 
 
-BACKGROUND_CLASS = 0    # Background
-SIDE_LANE_CLASS = 1    # Side lane
-MAIN_LANE_CLASS = 2    # Main lane
-
 class DLProgress(tqdm):
     last_block = 0
 
@@ -79,10 +75,7 @@ def gen_batch_function(data_folder, image_shape):
         label_paths = {
             re.sub(r'_(lane|road)_', '_', os.path.basename(path)): path
             for path in glob(os.path.join(data_folder, 'gt_image_2', '*_road_*.png'))}
-
         background_color = np.array([255, 0, 0])
-        side_lane_color = np.array([0, 0, 0])
-        main_lane_color = np.array([255, 0, 255])
 
         random.shuffle(image_paths)
         for batch_i in range(0, len(image_paths), batch_size):
@@ -92,25 +85,11 @@ def gen_batch_function(data_folder, image_shape):
                 gt_image_file = label_paths[os.path.basename(image_file)]
 
                 image = scipy.misc.imresize(scipy.misc.imread(image_file), image_shape)
-
-                # reads the image
                 gt_image = scipy.misc.imresize(scipy.misc.imread(gt_image_file), image_shape)
 
-                # get the background part of this image
                 gt_bg = np.all(gt_image == background_color, axis=2)
-                gt_bg[gt_bg == True] = BACKGROUND_CLASS
                 gt_bg = gt_bg.reshape(*gt_bg.shape, 1)
-
-                # get side_lane part of this image
-                gt_sl = np.all(gt_image == side_lane_color, axis=2)
-                gt_sl[gt_sl == True] = SIDE_LANE_CLASS
-                gt_sl = gt_sl.reshape(*gt_sl.shape, 1)
-
-                gt_ml = np.all(gt_image == main_lane_color, axis=2)
-                gt_ml[gt_ml == True] = MAIN_LANE_CLASS
-                gt_ml = gt_sl.reshape(*gt_ml.shape, 1)
-
-                gt_image = np.concatenate((gt_bg, gt_sl, gt_ml), axis=2)
+                gt_image = np.concatenate((gt_bg, np.invert(gt_bg)), axis=2)
 
                 images.append(image)
                 gt_images.append(gt_image)
@@ -136,22 +115,12 @@ def gen_test_output(sess, logits, keep_prob, image_pl, data_folder, image_shape)
         im_softmax = sess.run(
             [tf.nn.softmax(logits)],
             {keep_prob: 1.0, image_pl: [image]})
-
-        ml_softmax = im_softmax[0][:, MAIN_LANE_CLASS].reshape(image_shape[0], image_shape[1])
-        ml_segmentation = (ml_softmax > 0.5).reshape(image_shape[0], image_shape[1], 1)
-        ml_mask = np.dot(ml_segmentation, np.array([[0, 255, 0, 127]]))
-        ml_mask = scipy.misc.toimage(ml_mask, mode="RGBA")
+        im_softmax = im_softmax[0][:, 1].reshape(image_shape[0], image_shape[1])
+        segmentation = (im_softmax > 0.5).reshape(image_shape[0], image_shape[1], 1)
+        mask = np.dot(segmentation, np.array([[0, 255, 0, 127]]))
+        mask = scipy.misc.toimage(mask, mode="RGBA")
         street_im = scipy.misc.toimage(image)
-        street_im.paste(ml_mask, box=None, mask=ml_mask)
-
-        sl_softmax = im_softmax[0][:, SIDE_LANE_CLASS].reshape(image_shape[0], image_shape[1])
-        sl_segmentation = (sl_softmax > 0.5).reshape(image_shape[0], image_shape[1], 1)
-        sl_mask = np.dot(sl_segmentation, np.array([[255, 255, 0, 127]]))
-        sl_mask = scipy.misc.toimage(sl_mask, mode="RGBA")
-        street_im = scipy.misc.toimage(image)
-        street_im.paste(sl_mask, box=None, mask=sl_mask)
-
-
+        street_im.paste(mask, box=None, mask=mask)
         #street_im = scipy.misc.toimage(mask)
 
         yield os.path.basename(image_file), np.array(street_im)

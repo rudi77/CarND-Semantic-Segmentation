@@ -6,11 +6,11 @@ import warnings
 from distutils.version import LooseVersion
 import project_tests as tests
 
-Epochs = 25
+Epochs = 20
 Batch_Size = 2
 Learning_Rate = 0.0001
 Dropout = 0.7
-num_classes = 3
+num_classes = 2
 image_shape = (160, 576)
 data_dir = './data'
 runs_dir = './runs'
