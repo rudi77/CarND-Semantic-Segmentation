@@ -1,12 +1,13 @@
 import os.path
 import argparse
+import numpy as np
 import tensorflow as tf
 import helper
 import warnings
 from distutils.version import LooseVersion
 import project_tests as tests
 
-Epochs = 1
+Epochs = 20
 Batch_Size = 2
 Learning_Rate = 0.0001
 Dropout = 0.7
@@ -15,7 +16,6 @@ image_shape = (160, 576)
 data_dir = './data'
 runs_dir = './runs'
 models_dir = './models'
-# Launch tensorboard from commandline : tensorboard --logdir=path-to-log-dir
 log_dir = './logs'
 
 # Check TensorFlow Version
@@ -64,16 +64,14 @@ def load_vgg(sess, vgg_path):
 
     return input_image, keep_prob, l3, l4, l7
 
-#tests.test_load_vgg(load_vgg, tf)
+tests.test_load_vgg(load_vgg, tf)
 
 
-# custom init with the seed set to 0 by default
 def custom_init(mean=0.0, stddev=0.01, seed=0):
     return tf.truncated_normal_initializer(mean=mean, stddev=stddev, seed=seed)
 
 def custom_regularizer(scale=1e-3):
     return tf.contrib.layers.l2_regularizer(scale=scale)
-
 
 def conv_1x1(layer, num_outputs, layer_name):
     with tf.name_scope("conv_1x1"):
@@ -111,6 +109,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :return: The Tensor for the last layer of output
     """
 
+    # NOTE: How to create a 1x1 convolution was explained in detail in Scene Understanding, Lesson 10.7
     conv7_1x1 = conv_1x1(vgg_layer7_out, num_classes, "layer_7_1x1")
     conv4_1x1 = conv_1x1(vgg_layer4_out, num_classes, "layer_4_1x1")
     conv3_1x1 = conv_1x1(vgg_layer3_out, num_classes, "layer_3_1x1")
@@ -118,6 +117,8 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     #####################################################################################################
 
     # DECODER
+    # Upsample until the output has the same width and height as the input images.
+    # NOTE: The kernel and stride sizes are taken from Scene Understanding, Lesson 10.8
     deconv1 = upsample(conv7_1x1, num_classes, (4,4), (2,2), "deconv1")
     deconv2 = skip_connection(deconv1, conv4_1x1, "deconv2")
     deconv3 = upsample(deconv2, num_classes, (4,4), (2,2), "deconv3")
@@ -126,7 +127,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
 
     return deconv_output
 
-#tests.test_layers(layers)
+tests.test_layers(layers)
 
 
 def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
@@ -138,6 +139,8 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     :param num_classes: Number of classes to classify
     :return: Tuple of (logits, train_op, cross_entropy_loss)
     """
+
+    # NOTE: How to implement this part is described in detail in Scene Understanding, Lesson 10.9
 
     # Reshape 4D tensors to 2D, each row represents a pixel, each column a class
     logits = tf.reshape(nn_last_layer, (-1, num_classes))
@@ -154,10 +157,11 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
 
     return logits, train_op, cross_entropy_loss
 
-#tests.test_optimize(optimize)
+tests.test_optimize(optimize)
 
 def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
-             correct_label, keep_prob, learning_rate):
+             correct_label, keep_prob, learning_rate,
+             summary=None, writer=None):
     """
     Train neural network and print out the loss during training.
     :param sess: TF Session
@@ -172,9 +176,11 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param learning_rate: TF Placeholder for learning rate
     """
 
-    summary = tf.summary.merge_all()
-    writer = tf.summary.FileWriter(log_dir)
-    writer.add_graph(sess.graph)
+    # summary = tf.summary.merge_all()
+    #
+    # if summary != None:
+    #     writer = tf.summary.FileWriter(log_dir)
+    #     writer.add_graph(sess.graph)
 
     counter = 1
     for epoch in range(epochs):
@@ -186,11 +192,15 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
                     keep_prob: Dropout,
                     learning_rate: Learning_Rate}
 
-            _, loss, s = sess.run([train_op, cross_entropy_loss, summary], feed_dict=feed)
-            losses.append(loss)
+            if summary != None:
+                _, loss, s = sess.run([train_op, cross_entropy_loss, summary], feed_dict=feed)
 
-            if counter % 5 == 0:
-                writer.add_summary(s, counter)
+                if counter % 5 == 0:
+                    writer.add_summary(s, counter)
+            else:
+                _, loss = sess.run([train_op, cross_entropy_loss], feed_dict=feed)
+
+            losses.append(loss)
 
             print("--> Run: ", counter, " loss:", loss)
 
@@ -202,11 +212,46 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
         print("Epoch: ", epoch + 1, " of ", Epochs, "total loss: ", total_loss)
         print()
 
-#tests.test_train_nn(train_nn)
+tests.test_train_nn(train_nn)
 
 def mean_iou(ground_truth, prediction, num_classes):
-    iou, iou_op = tf.metrics.mean_iou(ground_truth, prediction, num_classes)
-    return iou, iou_op
+    with tf.name_scope("MeanIoU"):
+        iou, iou_op = tf.metrics.mean_iou(ground_truth, prediction, num_classes)
+        tf.summary.scalar("mean_iou", iou)
+        return iou, iou_op
+
+def evaluate_nn(sess, batch_size, get_batches_fn, keep_prob, logits,
+                input_pl, prediction, ground_truth, iou, iou_op, summary, writer):
+
+    mean_ious = []
+    counter = 1
+    for images, gt_images in get_batches_fn(batch_size):
+        for i in range(len(images)):
+            image = images[i]
+            gt_image = gt_images[i]
+
+            feed = {keep_prob: 1.0, input_pl: [image]}
+            pixel_probs = sess.run([tf.nn.softmax(logits)], feed_dict=feed)
+            pixel_probs = pixel_probs[0][:, 1].reshape(image_shape[0], image_shape[1])
+
+            predicted_labels = (pixel_probs > 0.5).reshape(image_shape[0], image_shape[1], 1)
+            predicted_image = np.concatenate((np.invert(predicted_labels), predicted_labels), axis=2)
+
+            feed = {ground_truth : [gt_image], prediction : [predicted_image]}
+            sess.run(iou_op, feed_dict=feed)
+
+            #mean, s = sess.run([iou, summary], feed_dict=feed)
+
+            mean= sess.run(iou, feed_dict=feed)
+            mean_ious.append(mean)
+
+            #writer.add_summary(s, counter)
+
+        print("Evaluation Batch {0}, mean IoU: {1:.3} ".format( counter, sum(mean_ious)/len(mean_ious) ))
+        counter += 1
+
+    total_mean_iou = sum(mean_ious)/len(mean_ious)
+    print("Mean IoU: ", total_mean_iou)
 
 def run(train, evaluate, model_path=''):
     tests.test_for_kitti_dataset(data_dir)
@@ -222,8 +267,10 @@ def run(train, evaluate, model_path=''):
         tf.gfile.DeleteRecursively(log_dir)
     tf.gfile.MakeDirs(log_dir)
 
-    correct_label = tf.placeholder(dtype=tf.float32, shape=[None, image_shape[0], image_shape[1], num_classes], name="correct_label")
     learning_rate = tf.placeholder(dtype=tf.float32, name="learning_rate")
+    ground_truth = tf.placeholder(dtype=tf.float32, shape=[None, image_shape[0], image_shape[1], num_classes], name="ground_truth")
+    prediction = tf.placeholder(dtype=tf.float32, shape=[None, image_shape[0], image_shape[1], num_classes], name="prediction")
+    iou, iou_op = mean_iou(ground_truth, prediction, num_classes)
 
     with tf.Session() as sess:
         # Path to vgg model
@@ -239,11 +286,15 @@ def run(train, evaluate, model_path=''):
         output = layers(l3, l4, l7, num_classes)
 
         # Create the loss function and the optimizer
-        logits, train_op, cross_entropy_loss = optimize(output, correct_label, learning_rate, num_classes)
+        logits, train_op, cross_entropy_loss = optimize(output, ground_truth, learning_rate, num_classes)
 
         # Initialize all variables
         sess.run(tf.global_variables_initializer())
         sess.run(tf.local_variables_initializer())
+
+        summary = tf.summary.merge_all()
+        writer = tf.summary.FileWriter(log_dir)
+        writer.add_graph(sess.graph)
 
         saver = tf.train.Saver()
 
@@ -252,20 +303,23 @@ def run(train, evaluate, model_path=''):
             saver.restore(sess, model_path)
 
         if train:
+            print("Train the model")
             # Create function to get batches
-            get_batches_fn = helper.gen_batch_function(os.path.join(data_dir, 'data_road/training'), image_shape)
+            gen_train_batch_fn, _ = helper.gen_batch_function(os.path.join(data_dir, 'data_road/training'), image_shape)
 
             # Train the neural network
             train_nn(sess,
                      Epochs,
                      Batch_Size,
-                     get_batches_fn,
+                     gen_train_batch_fn,
                      train_op,
                      cross_entropy_loss,
                      input_image,
-                     correct_label,
+                     ground_truth,
                      keep_prob,
-                     learning_rate)
+                     learning_rate,
+                     summary,
+                     writer)
 
             save_path = saver.save(sess, os.path.join(models_dir, "model.ckpt"))
             print("Model saved in file: %s" % save_path)
@@ -274,9 +328,22 @@ def run(train, evaluate, model_path=''):
             helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
 
             # OPTIONAL: Apply the trained model to a video
+
         if evaluate:
             print("Evaluating the model")
-            # TODO: foreach test_image do a prediction, get the pixels for the road
+            _, gen_test_batch_fn = helper.gen_batch_function(os.path.join(data_dir, 'data_road/training'), image_shape)
+            evaluate_nn(sess,
+                        Batch_Size,
+                        gen_test_batch_fn,
+                        keep_prob,
+                        logits,
+                        input_image,
+                        prediction,
+                        ground_truth,
+                        iou,
+                        iou_op,
+                        summary,
+                        writer)
 
     print ("Finished")
 
@@ -291,5 +358,3 @@ if __name__ == '__main__':
     print(args)
 
     run(args.train, args.evaluate, args.model)
-
-

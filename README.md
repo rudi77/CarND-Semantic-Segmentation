@@ -1,7 +1,11 @@
 # Semantic Segmentation
+
 ### Introduction
 This is the second project of the last term of the self driving car nanodegree. The goal of this project is to train a [Fully Convolutional Network](https://arxiv.org/abs/1411.4038) (FCN) that is able to detect the pixels of a road in images. 
 An FCN is a CNN without any fully-connected layers. In this project we used pretrained VGG16 model, replaced the fcn layers with 1x1 convolutional layers and finally added several deconvolution or upsampling layers. The result is fully convolutional network which is able to do a semantic pixel segmentation in provided images.
+
+### Program Usage
+
 
 ### Setup
 
