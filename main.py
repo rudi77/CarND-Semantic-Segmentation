@@ -47,10 +47,6 @@ def load_vgg(sess, vgg_path):
     vgg_layer4_out_tensor_name = 'layer4_out:0'
     vgg_layer7_out_tensor_name = 'layer7_out:0'
 
-    #with tf.name_scope(vgg_tag):
-        # get the graph
-        #graph = sess.graph
-
     # ENVODER PART
 
     # Get Tensors to be returned from graph
