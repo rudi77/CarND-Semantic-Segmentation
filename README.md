@@ -1,16 +1,17 @@
 # Semantic Segmentation
 ### Introduction
-This is the second project of the last term of the self driving car nanodegree. In this project I implemented
-a Fully Convolutional Network (FCN) that is able to detect the pixels of a road in images. Therefore I had to modify
-the architecture of a pretrained VGG16 network. 
+This is the second project of the last term of the self driving car nanodegree. The goal of this project is to train a [Fully Convolutional Network](https://arxiv.org/abs/1411.4038) (FCN) that is able to detect the pixels of a road in images. 
+An FCN is a CNN without any fully-connected layers. In this project we used pretrained VGG16 model, replaced the fcn layers with 1x1 convolutional layers and finally added several deconvolution or upsampling layers. The result is fully convolutional network which is able to do a semantic pixel segmentation in provided images.
 
 ### Setup
+
 ##### Frameworks and Packages
 Make sure you have the following is installed:
  - [Python 3](https://www.python.org/)
  - [TensorFlow](https://www.tensorflow.org/)
  - [NumPy](http://www.numpy.org/)
  - [SciPy](https://www.scipy.org/)
+ - 
 ##### Dataset
 Download the [Kitti Road dataset](http://www.cvlibs.net/datasets/kitti/eval_road.php) from [here](http://www.cvlibs.net/download.php?file=data_road.zip).  Extract the dataset in the `data` folder.  This will create the folder `data_road` with all the training a test images.
 

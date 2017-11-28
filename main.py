@@ -6,7 +6,7 @@ import warnings
 from distutils.version import LooseVersion
 import project_tests as tests
 
-Epochs = 20
+Epochs = 1
 Batch_Size = 2
 Learning_Rate = 0.0001
 Dropout = 0.7
@@ -64,7 +64,7 @@ def load_vgg(sess, vgg_path):
 
     return input_image, keep_prob, l3, l4, l7
 
-tests.test_load_vgg(load_vgg, tf)
+#tests.test_load_vgg(load_vgg, tf)
 
 
 # custom init with the seed set to 0 by default
@@ -187,13 +187,12 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
                     learning_rate: Learning_Rate}
 
             _, loss, s = sess.run([train_op, cross_entropy_loss, summary], feed_dict=feed)
+            losses.append(loss)
 
             if counter % 5 == 0:
                 writer.add_summary(s, counter)
 
             print("--> Run: ", counter, " loss:", loss)
-
-            losses.append(loss)
 
             counter += 1
 
@@ -205,8 +204,11 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 
 #tests.test_train_nn(train_nn)
 
+def mean_iou(ground_truth, prediction, num_classes):
+    iou, iou_op = tf.metrics.mean_iou(ground_truth, prediction, num_classes)
+    return iou, iou_op
 
-def run():
+def run(train, evaluate, model_path=''):
     tests.test_for_kitti_dataset(data_dir)
 
     # Download pretrained vgg model
@@ -227,17 +229,16 @@ def run():
         # Path to vgg model
         vgg_path = os.path.join(data_dir, 'vgg')
 
-        # Create function to get batches
-        get_batches_fn = helper.gen_batch_function(os.path.join(data_dir, 'data_road/training'), image_shape)
-
         # OPTIONAL: Augment Images for better results
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
         # Build NN using load_vgg, layers, and optimize function
         input_image, keep_prob, l3, l4, l7 = load_vgg(sess, vgg_path)
 
+        # Create the Decoder part
         output = layers(l3, l4, l7, num_classes)
 
+        # Create the loss function and the optimizer
         logits, train_op, cross_entropy_loss = optimize(output, correct_label, learning_rate, num_classes)
 
         # Initialize all variables
@@ -246,34 +247,49 @@ def run():
 
         saver = tf.train.Saver()
 
-        # Train the neural network
-        train_nn(sess,
-                 Epochs,
-                 Batch_Size,
-                 get_batches_fn,
-                 train_op,
-                 cross_entropy_loss,
-                 input_image,
-                 correct_label,
-                 keep_prob,
-                 learning_rate)
+        if model_path != '':
+            print('Restoring model from %s' % model_path)
+            saver.restore(sess, model_path)
 
-        save_path = saver.save(sess, os.path.join(models_dir, "model.ckpt"))
-        print("Model saved in file: %s" % save_path)
+        if train:
+            # Create function to get batches
+            get_batches_fn = helper.gen_batch_function(os.path.join(data_dir, 'data_road/training'), image_shape)
 
-        # Run the model with the test images and save each painted output image (roads painted green)
-        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
+            # Train the neural network
+            train_nn(sess,
+                     Epochs,
+                     Batch_Size,
+                     get_batches_fn,
+                     train_op,
+                     cross_entropy_loss,
+                     input_image,
+                     correct_label,
+                     keep_prob,
+                     learning_rate)
 
-        # OPTIONAL: Apply the trained model to a video
+            save_path = saver.save(sess, os.path.join(models_dir, "model.ckpt"))
+            print("Model saved in file: %s" % save_path)
+
+            # Run the model with the test images and save each painted output image (roads painted green)
+            helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
+
+            # OPTIONAL: Apply the trained model to a video
+        if evaluate:
+            print("Evaluating the model")
+            # TODO: foreach test_image do a prediction, get the pixels for the road
 
     print ("Finished")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Semantic Segmentation')
-    parser.add_argument('model', type=str, help='Path to the model.', default='', nargs='?')
+    parser.add_argument('-t', '--train', help='Trains a model.', action="store_true")
+    parser.add_argument('-e', '--evaluate', help='Evaluates a model.', action="store_true")
+    parser.add_argument('-m', '--model', type=str, help='Path to the model that shall be restored and used.', default='', nargs='?')
 
     args = parser.parse_args()
 
-    print("Model: %s" % args.model)
+    print(args)
 
-    run()
+    run(args.train, args.evaluate, args.model)
+
+
