@@ -17,7 +17,7 @@ An FCN is a CNN without any fully-connected layers. In this project we used pret
 ### Result
 I executed two experiments. In the first experiment I trained the network with all training images. The figure below shows the loss curve with a final loss value of 0.02163.
 
-<a href="url"><img src="./images/cross_entropy.png" height="400" width="1024" ></a>
+<a href="url"><img src="./images/cross_entropy1.png" height="400" width="1024" ></a>
 
 ### Setup
 
