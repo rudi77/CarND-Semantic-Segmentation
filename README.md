@@ -48,16 +48,28 @@ optional arguments:
 - image_shape = (160, 576)
 
 ### Result
-I carried out two experiments. 
+I carried out two experiments. Both experiments were executed on an AWS EC2 instance with GPU support (g2.2xlarge). 
 #### Experiment 1
 In the first experiment I trained the network with all training images. The figure below shows the loss curve with a final loss value of 0.02163.
 
 <a href="url"><img src="./images/cross_entropy1.png" height="400" width="1024" ></a>
 
-And here you can see some inference results
+And here you can see some inference results:
 
 <img src="./images/um_000053.png" width="425"/> <img src="./images/um_000072.png" width="425"/> 
 <img src="./images/um_000074.png" width="425"/> <img src="./images/um_000075.png" width="425"/> 
 <img src="./images/um_000079.png" width="425"/>
+
+#### Experiment 2
+In the second experiment is splitted the training set into training and a test set. Then I trained the model and evaluated the model with the IoU (Intersection over Union) metric.
+
+<img src="./images/train_eval_resuts.png" width="425"/>
+
+Then I took the test images and overlayed the corresponding ground truth (cyan) and the prediction result (green). Some results are shown below:
+
+<img src="./evaluations/image_1.png" width="425"/> <img src="./evaluations/image_5.png" width="425"/> 
+<img src="./evaluations/image_10.png" width="425"/> <img src="./evaluations/image_15.png" width="425"/> 
+<img src="./evaluations/image_20.png" width="425"/>
+
 
 
