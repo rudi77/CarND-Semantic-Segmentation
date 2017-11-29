@@ -58,7 +58,7 @@ def maybe_download_pretrained_vgg(data_dir):
         os.remove(os.path.join(vgg_path, vgg_filename))
 
 
-def gen_batch_function(data_folder, image_shape):
+def gen_batch_function(data_folder, image_shape, use_all_training_data=True):
     """
     Generate functions to create batches of training and test data
     :param data_folder: Path to folder that contains all the datasets
@@ -102,10 +102,16 @@ def gen_batch_function(data_folder, image_shape):
                 gt_images.append(gt_image)
 
             yield np.array(images), np.array(gt_images)
-    gen_train_batch_fn = lambda bs : get_batches_fn(batch_size=bs, dataset_paths=image_paths[:train_total])
-    gen_test_batch_fn = lambda bs: get_batches_fn(batch_size=bs, dataset_paths=image_paths[train_total:img_total])
 
-    return gen_train_batch_fn, gen_test_batch_fn
+    # Uses all images for training
+    if use_all_training_data:
+        gen_train_batch_fn = lambda bs: get_batches_fn(batch_size=bs, dataset_paths=image_paths)
+        return gen_train_batch_fn, None
+    else:
+        gen_train_batch_fn = lambda bs : get_batches_fn(batch_size=bs, dataset_paths=image_paths[:train_total])
+        gen_test_batch_fn = lambda bs: get_batches_fn(batch_size=bs, dataset_paths=image_paths[train_total:img_total])
+
+        return gen_train_batch_fn, gen_test_batch_fn
 
 
 def gen_test_output(sess, logits, keep_prob, image_pl, data_folder, image_shape):
