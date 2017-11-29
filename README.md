@@ -60,4 +60,9 @@ And here you can see some inference results
 <img src="./images/um_000074.png" width="425"/> <img src="./images/um_000075.png" width="425"/> 
 <img src="./images/um_000079.png" width="425"/>
 
+#### Experiment 2
+In the second experiment is splitted the training set into training and a test set. Then I trained the model and evaluated the model with the IoU (Intersection over Union) metric.
+
+<img src="./images/train_eval_resuts.png" width="425"/>
+
 
