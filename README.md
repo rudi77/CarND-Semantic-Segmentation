@@ -11,13 +11,20 @@ An FCN is a CNN without any fully-connected layers. In this project we used pret
 - Batch_Size = 2
 - Learning_Rate = 0.0001
 - Dropout = 0.7
-- num_classes = 2
+- num_classes = 2 (Background or Road)
 - image_shape = (160, 576)
 
 ### Result
-I executed two experiments. In the first experiment I trained the network with all training images. The figure below shows the loss curve with a final loss value of 0.02163.
+I executed two experiments. 
+#### Experiment 1
+In the first experiment I trained the network with all training images. The figure below shows the loss curve with a final loss value of 0.02163.
 
 <a href="url"><img src="./images/cross_entropy1.png" height="400" width="1024" ></a>
+
+And here you can see some inference results
+![alt-text-1](./images/um_000053.png) ![alt-text-2](./images/um_000072.png)
+![alt-text-1](./images/um_000074.png) ![alt-text-2](./images/um_000075.png)
+![alt-text-2](./images/um_000079.png)
 
 ### Setup
 
