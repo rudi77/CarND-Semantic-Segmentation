@@ -108,6 +108,8 @@ def gen_batch_function(data_folder, image_shape, use_all_training_data=True):
         gen_train_batch_fn = lambda bs: get_batches_fn(batch_size=bs, dataset_paths=image_paths)
         return gen_train_batch_fn, None
     else:
+        print("#Training set: {0}, #Testing set: {1}".format(train_total, img_total-train_total))
+
         gen_train_batch_fn = lambda bs : get_batches_fn(batch_size=bs, dataset_paths=image_paths[:train_total])
         gen_test_batch_fn = lambda bs: get_batches_fn(batch_size=bs, dataset_paths=image_paths[train_total:img_total])
 
