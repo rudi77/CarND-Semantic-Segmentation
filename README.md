@@ -6,21 +6,6 @@ An FCN is a CNN without any fully-connected layers. In this project we used pret
 
 ### Program Usage
 
-### Network Parameters
-- Epochs = 20
-- Batch_Size = 2
-- Learning_Rate = 0.0001
-- Dropout = 0.7
-- num_classes = 2
-- image_shape = (160, 576)
-
-### Result
-I executed two experiments. In the first experiment I trained the network with all training images. The figure below shows the loss curve with a final loss value of 0.02163.
-
-<a href="url"><img src="./images/cross_entropy.png" height="400" width="1024" ></a>
-
-### Setup
-
 ##### Frameworks and Packages
 Make sure you have the following is installed:
  - [Python 3](https://www.python.org/)
@@ -31,25 +16,48 @@ Make sure you have the following is installed:
 ##### Dataset
 Download the [Kitti Road dataset](http://www.cvlibs.net/datasets/kitti/eval_road.php) from [here](http://www.cvlibs.net/download.php?file=data_road.zip).  Extract the dataset in the `data` folder.  This will create the folder `data_road` with all the training a test images.
 
-### Start
-##### Implement
-Implement the code in the `main.py` module indicated by the "TODO" comments.
-The comments indicated with "OPTIONAL" tag are not required to complete.
-##### Run
+##### Start
 Run the following command to run the project:
 ```
 python main.py
 ```
-**Note** If running this in Jupyter Notebook system messages, such as those regarding test status, may appear in the terminal rather than the notebook.
 
-### Submission
-1. Ensure you've passed all the unit tests.
-2. Ensure you pass all points on [the rubric](https://review.udacity.com/#!/rubrics/989/view).
-3. Submit the following in a zip file.
- - `helper.py`
- - `main.py`
- - `project_tests.py`
- - Newest inference images from `runs` folder  (**all images from the most recent run**)
- 
- ## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
+I've added some more options:
+```sh
+usage: main.py [-h] [-t] [-e] [-m [MODEL]]
+
+Semantic Segmentation of road pixels in images.Calling main.py without any
+cmdline args will train a model with all images available in the training set.
+If you call main.py -e then the model will be trained with 90% of the training
+images and the remaining 10% will be used for model evaluation
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -t, --train_evaluate  Trains and evaluates a model
+  -e, --evaluate        Evaluates a model.
+  -m [MODEL], --model [MODEL]
+                        Path to the model that shall be restored and used.
+```
+
+### Network Parameters
+- Epochs = 20
+- Batch_Size = 2
+- Learning_Rate = 0.0001
+- Dropout = 0.7
+- num_classes = 2 (Background or Road)
+- image_shape = (160, 576)
+
+### Result
+I carried out two experiments. 
+#### Experiment 1
+In the first experiment I trained the network with all training images. The figure below shows the loss curve with a final loss value of 0.02163.
+
+<a href="url"><img src="./images/cross_entropy1.png" height="400" width="1024" ></a>
+
+And here you can see some inference results
+
+<img src="./images/um_000053.png" width="425"/> <img src="./images/um_000072.png" width="425"/> 
+<img src="./images/um_000074.png" width="425"/> <img src="./images/um_000075.png" width="425"/> 
+<img src="./images/um_000079.png" width="425"/>
+
+
