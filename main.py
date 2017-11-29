@@ -176,13 +176,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param keep_prob: TF Placeholder for dropout keep probability
     :param learning_rate: TF Placeholder for learning rate
     """
-
-    # summary = tf.summary.merge_all()
-    #
-    # if summary != None:
-    #     writer = tf.summary.FileWriter(log_dir)
-    #     writer.add_graph(sess.graph)
-
+    
     counter = 1
     for epoch in range(epochs):
         losses = []
