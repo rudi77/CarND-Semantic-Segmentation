@@ -65,4 +65,10 @@ In the second experiment is splitted the training set into training and a test s
 
 <img src="./images/train_eval_resuts.png" width="425"/>
 
+Then I took the test images and overlayed the corresponding ground truth (cyan) and the prediction result (green). Some results are shown below:
+<img src="./evaluations/image_1.png" width="425"/> <img src="./evaluations/image_5.png" width="425"/> 
+<img src="./evaluations/image_10.png" width="425"/> <img src="./evaluations/image_15.png" width="425"/> 
+<img src="./evaluations/image_20.png" width="425"/>
+
+
 
